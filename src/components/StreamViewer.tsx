@@ -1,5 +1,5 @@
-import React, { useEffect, useRef, useState } from "react";
-import { io, Socket } from "socket.io-client";
+import React, { useEffect, useRef } from "react";
+import { io } from "socket.io-client";
 
 interface StreamReceiverProps {
   roomId: string;
@@ -8,8 +8,6 @@ interface StreamReceiverProps {
 
 const StreamReceiver: React.FC<StreamReceiverProps> = ({ roomId, username }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [socket, setSocket] = useState<Socket | null>(null);
-  const [peerConnection, setPeerConnection] = useState<RTCPeerConnection | null>(null);
 
   useEffect(() => {
     // Подключаемся к сигнальному серверу
@@ -51,11 +49,8 @@ const StreamReceiver: React.FC<StreamReceiverProps> = ({ roomId, username }) => 
       }
     };
 
-    setPeerConnection(pc);
-    setSocket(newSocket);
-
     // При получении offer от стримера устанавливаем описание и отправляем answer
-    newSocket.on("offer", async ({ offer, peerId }) => {
+    newSocket.on("offer", async ({ offer }) => {
       try {
         console.log("Получен offer от стримера");
         await pc.setRemoteDescription(new RTCSessionDescription(offer));

@@ -3,7 +3,7 @@ import StreamViewer from './components/StreamViewer'
 import Chat from './components/Chat'
 
 function App() {
-  const [streamId, setStreamId] = useState('test-room');
+  const [streamId, _] = useState('test-room');
 
   return (
     <div className="min-h-screen bg-gray-900 p-4">
