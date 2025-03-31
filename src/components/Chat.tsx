@@ -27,8 +27,7 @@ const Chat: React.FC<ChatProps> = ({ streamId }) => {
     const newSocket = io(apiUrl, {
       query: {
         roomId: streamId,
-        username: 'Администратор',
-        isAdmin: true
+        username: 'Admin',
       }
     });
 
@@ -66,7 +65,7 @@ const Chat: React.FC<ChatProps> = ({ streamId }) => {
     if (newMessage.trim() && socket) {
       const messageData = {
         text: newMessage,
-        sender: 'Администратор',
+        sender: 'Admin',
         tokens: 0
       };
       console.log('Отправка сообщения:', messageData);

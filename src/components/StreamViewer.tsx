@@ -1,5 +1,5 @@
-import React, { useEffect, useRef } from "react";
-import { io } from "socket.io-client";
+import React, { useEffect, useRef, useState } from "react";
+import { io, Socket } from "socket.io-client";
 
 interface VideoReceiverProps {
   roomId: string;
@@ -8,6 +8,9 @@ interface VideoReceiverProps {
 
 const VideoReceiver: React.FC<VideoReceiverProps> = ({ roomId, username }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const [peerConnection, setPeerConnection] =
+    useState<RTCPeerConnection | null>(null);
+  const [socket, setSocket] = useState<Socket | null>(null);
 
   useEffect(() => {
     const apiUrl = import.meta.env.VITE_API_URL;
@@ -15,91 +18,108 @@ const VideoReceiver: React.FC<VideoReceiverProps> = ({ roomId, username }) => {
       query: { roomId, username, role: "viewer" },
     });
 
-    socket.on("connect", () => {
-      console.log("Подключено к сигнальному серверу");
-    });
+    const createPeerConnection = () => {
+      const pc = new RTCPeerConnection({
+        iceServers: [
+          {
+            urls: "stun:stun.relay.metered.ca:80",
+          },
+          {
+            urls: "turn:global.relay.metered.ca:80",
+            username: "b2b91d474dab8140869cdadc",
+            credential: "2EsWAA8CdUuixC34",
+          },
+          {
+            urls: "turn:global.relay.metered.ca:80?transport=tcp",
+            username: "b2b91d474dab8140869cdadc",
+            credential: "2EsWAA8CdUuixC34",
+          },
+          {
+            urls: "turn:global.relay.metered.ca:443",
+            username: "b2b91d474dab8140869cdadc",
+            credential: "2EsWAA8CdUuixC34",
+          },
+          {
+            urls: "turns:global.relay.metered.ca:443?transport=tcp",
+            username: "b2b91d474dab8140869cdadc",
+            credential: "2EsWAA8CdUuixC34",
+          },
+        ],
+      });
 
-    const pc = new RTCPeerConnection({
-      iceServers: [
-        {
-          urls: "stun:stun.relay.metered.ca:80",
-        },
-        {
-          urls: "turn:global.relay.metered.ca:80",
-          username: "b2b91d474dab8140869cdadc",
-          credential: "2EsWAA8CdUuixC34",
-        },
-        {
-          urls: "turn:global.relay.metered.ca:80?transport=tcp",
-          username: "b2b91d474dab8140869cdadc",
-          credential: "2EsWAA8CdUuixC34",
-        },
-        {
-          urls: "turn:global.relay.metered.ca:443",
-          username: "b2b91d474dab8140869cdadc",
-          credential: "2EsWAA8CdUuixC34",
-        },
-        {
-          urls: "turns:global.relay.metered.ca:443?transport=tcp",
-          username: "b2b91d474dab8140869cdadc",
-          credential: "2EsWAA8CdUuixC34",
-        },
-      ],
-    });
-
-    pc.onicecandidate = (event) => {
-      if (event.candidate) {
-        socket.emit("ice-candidate", {
-          candidate: event.candidate,
-          roomId,
-          peerId: "broadcaster",
-        });
-      }
-    };
-
-    pc.ontrack = (event) => {
-      if (videoRef.current) {
-        if (event.streams && event.streams[0]) {
-          videoRef.current.srcObject = event.streams[0];
-          videoRef.current.play().catch(err => console.error("Ошибка воспроизведения:", err));
+      pc.onicecandidate = (event) => {
+        if (event.candidate) {
+          console.log("Отправка ICE-кандидата на сервер:", event.candidate);
+          socket.emit("ice-candidate", {
+            candidate: event.candidate,
+            peerId: "viewer",
+            roomId,
+          });
         }
-      }
+      };
+
+      pc.ontrack = (event) => {
+        if (videoRef.current) {
+          console.log("Получен видеотрек:", event.streams[0]);
+          videoRef.current.srcObject = event.streams[0];
+        }
+      };
+
+      pc.onconnectionstatechange = () => {
+        console.log("Состояние соединения:", pc.connectionState);
+      };
+
+      pc.oniceconnectionstatechange = () => {
+        console.log("Состояние ICE:", pc.iceConnectionState);
+      };
+
+      return pc;
     };
-    
+
+    const pc = createPeerConnection();
+    setPeerConnection(pc);
+
+    socket.on("connect", () => {
+      console.log("Подключено к серверу как зритель");
+    });
+
     socket.on("offer", async ({ offer }) => {
-      console.log("Received offer from broadcaster:", offer.type);
+      console.log("Получен offer от стримера");
+
       try {
+        if (!pc) return;
+
         await pc.setRemoteDescription(new RTCSessionDescription(offer));
+        console.log("Удалённое описание установлено (offer)");
+
         const answer = await pc.createAnswer();
         await pc.setLocalDescription(answer);
-        console.log("Sending answer to broadcaster");
-        socket.emit("answer", { 
-          answer: pc.localDescription, 
-          roomId, 
-          peerId: "broadcaster"
+
+        console.log("Отправка answer на сервер");
+        socket.emit("answer", {
+          answer: pc.localDescription,
+          roomId,
+          peerId: "viewer",
         });
+
+        console.log("Ответ отправлен:", pc.localDescription);
       } catch (error) {
-        console.error("Error processing offer:", error);
+        console.error("Ошибка обработки offer:", error);
       }
     });
-    
-    socket.on("ice-candidate", async ({ candidate, peerId }) => {
+
+    socket.on("ice-candidate", async ({ candidate }) => {
+      if (!pc || !candidate) return;
+
       try {
-        console.log("Received ICE candidate from:", peerId);
         await pc.addIceCandidate(new RTCIceCandidate(candidate));
-        console.log("ICE candidate added successfully");
+        console.log("ICE-кандидат добавлен успешно");
       } catch (error) {
-        console.error("Error adding ICE candidate:", error);
+        console.error("Ошибка добавления ICE-кандидата:", error);
       }
     });
 
-    pc.onconnectionstatechange = () => {
-      console.log("Состояние соединения:", pc.connectionState);
-    };
-
-    pc.oniceconnectionstatechange = () => {
-      console.log("Состояние ICE:", pc.iceConnectionState);
-    };
+    setSocket(socket);
 
     return () => {
       socket.disconnect();
