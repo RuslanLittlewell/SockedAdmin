@@ -1,5 +1,5 @@
-import React, { useEffect, useRef, useState } from "react";
-import { io, Socket } from "socket.io-client";
+import React, { useEffect, useRef } from "react";
+import { io } from "socket.io-client";
 
 interface VideoReceiverProps {
   roomId: string;
@@ -8,9 +8,6 @@ interface VideoReceiverProps {
 
 const VideoReceiver: React.FC<VideoReceiverProps> = ({ roomId, username }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [peerConnection, setPeerConnection] =
-    useState<RTCPeerConnection | null>(null);
-  const [socket, setSocket] = useState<Socket | null>(null);
 
   useEffect(() => {
     const apiUrl = import.meta.env.VITE_API_URL;
@@ -77,7 +74,6 @@ const VideoReceiver: React.FC<VideoReceiverProps> = ({ roomId, username }) => {
     };
 
     const pc = createPeerConnection();
-    setPeerConnection(pc);
 
     socket.on("connect", () => {
       console.log("Подключено к серверу как зритель");
@@ -118,8 +114,6 @@ const VideoReceiver: React.FC<VideoReceiverProps> = ({ roomId, username }) => {
         console.error("Ошибка добавления ICE-кандидата:", error);
       }
     });
-
-    setSocket(socket);
 
     return () => {
       socket.disconnect();
