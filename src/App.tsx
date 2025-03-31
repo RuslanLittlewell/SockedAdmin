@@ -11,7 +11,7 @@ function App() {
           <div className="lg:col-span-3">
             <StreamViewer
               roomId={streamId}
-              username="Администратор"
+              username="Администратор Видео"
             />
           </div>
           <div className="lg:col-span-1">

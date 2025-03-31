@@ -21,9 +21,10 @@ const Chat: React.FC<ChatProps> = ({ streamId }) => {
   const [newMessage, setNewMessage] = useState('');
   const [socket, setSocket] = useState<Socket | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-
+  
   useEffect(() => {
-    const newSocket = io('https://sockedserver.onrender.com', {
+    const apiUrl = import.meta.env.VITE_API_URL;
+    const newSocket = io(apiUrl, {
       query: {
         roomId: streamId,
         username: 'Администратор',
