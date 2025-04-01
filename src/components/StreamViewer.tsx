@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef } from "react";
 import { io } from "socket.io-client";
 import SimplePeer from "simple-peer";
 
@@ -9,7 +9,6 @@ interface VideoReceiverProps {
 
 const VideoReceiver: React.FC<VideoReceiverProps> = ({ roomId, username }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [peer, setPeer] = useState<any>(null);
 
   useEffect(() => {
     const apiUrl = import.meta.env.VITE_API_URL;
@@ -53,9 +52,6 @@ const VideoReceiver: React.FC<VideoReceiverProps> = ({ roomId, username }) => {
     socket.on("ice-candidate", (candidate) => {
       if (candidate) newPeer.signal(candidate);
     });
-
-    setPeer(newPeer);
-
 
     return () => {
       socket.disconnect();
