@@ -8,13 +8,13 @@ function App() {
   return (
     <div className="min-h-screen bg-gray-900 p-4">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 h-[calc(100vh-2rem)]">
-          <div className="lg:col-span-3">
+          <div className="lg:col-span-2">
             <StreamViewer
               roomId={streamId}
               username="Admin"
             />
           </div>
-          <div className="lg:col-span-1">
+          <div className="lg:col-span-2">
             <Chat streamId={streamId} />
           </div>
         </div>

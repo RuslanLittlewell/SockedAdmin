@@ -1,5 +1,6 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { io } from "socket.io-client";
+import SimplePeer from "simple-peer";
 
 interface VideoReceiverProps {
   roomId: string;
@@ -8,6 +9,7 @@ interface VideoReceiverProps {
 
 const VideoReceiver: React.FC<VideoReceiverProps> = ({ roomId, username }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const [peer, setPeer] = useState<any>(null);
 
   useEffect(() => {
     const apiUrl = import.meta.env.VITE_API_URL;
@@ -15,109 +17,48 @@ const VideoReceiver: React.FC<VideoReceiverProps> = ({ roomId, username }) => {
       query: { roomId, username, role: "viewer" },
     });
 
-    const createPeerConnection = () => {
-      const pc = new RTCPeerConnection({
-        iceServers: [
-          {
-            urls: "stun:stun.relay.metered.ca:80",
-          },
-          {
-            urls: "turn:global.relay.metered.ca:80",
-            username: "b2b91d474dab8140869cdadc",
-            credential: "2EsWAA8CdUuixC34",
-          },
-          {
-            urls: "turn:global.relay.metered.ca:80?transport=tcp",
-            username: "b2b91d474dab8140869cdadc",
-            credential: "2EsWAA8CdUuixC34",
-          },
-          {
-            urls: "turn:global.relay.metered.ca:443",
-            username: "b2b91d474dab8140869cdadc",
-            credential: "2EsWAA8CdUuixC34",
-          },
-          {
-            urls: "turns:global.relay.metered.ca:443?transport=tcp",
-            username: "b2b91d474dab8140869cdadc",
-            credential: "2EsWAA8CdUuixC34",
-          },
-        ],
-      });
+    const newPeer = new SimplePeer({
+			initiator: false,
+			trickle: false,
+		})
 
-      pc.onicecandidate = (event) => {
-        if (event.candidate) {
-          console.log("Отправка ICE-кандидата на сервер:", event.candidate);
-          socket.emit("ice-candidate", {
-            candidate: event.candidate,
-            peerId: "viewer",
-            roomId,
-          });
-        }
-      };
-
-      pc.ontrack = (event) => {
-        if (videoRef.current) {
-          console.log("Получен видеотрек:", event.streams[0]);
-          videoRef.current.srcObject = event.streams[0];
-        }
-      };
-
-      pc.onconnectionstatechange = () => {
-        console.log("Состояние соединения:", pc.connectionState);
-      };
-
-      pc.oniceconnectionstatechange = () => {
-        console.log("Состояние ICE:", pc.iceConnectionState);
-      };
-
-      return pc;
-    };
-
-    const pc = createPeerConnection();
-
-    socket.on("connect", () => {
-      console.log("Подключено к серверу как зритель");
+    
+    newPeer.on("signal", (data) => {
+      socket.emit("answer", { answer: data, roomId, username });
     });
 
-    socket.on("offer", async ({ offer }) => {
-      console.log("Получен offer от стримера");
+    newPeer.on("connect", () => {
+      console.log("✅ Viewer подключен");
+    });
 
-      try {
-        if (!pc) return;
+    newPeer.on("stream", (remoteStream) => {
+      console.log("📡 Получен поток от Broadcaster");
 
-        await pc.setRemoteDescription(new RTCSessionDescription(offer));
-        console.log("Удалённое описание установлено (offer)");
-
-        const answer = await pc.createAnswer();
-        await pc.setLocalDescription(answer);
-
-        console.log("Отправка answer на сервер");
-        socket.emit("answer", {
-          answer: pc.localDescription,
-          roomId,
-          peerId: "viewer",
-        });
-
-        console.log("Ответ отправлен:", pc.localDescription);
-      } catch (error) {
-        console.error("Ошибка обработки offer:", error);
+      if (videoRef.current) {
+        videoRef.current.srcObject = remoteStream;
       }
     });
 
-    socket.on("ice-candidate", async ({ candidate }) => {
-      if (!pc || !candidate) return;
-
+    socket.on("offer", (data) => {
+      console.log("📡 Получен offer от Broadcaster", data);
+      
+      const offer = data.offer;
       try {
-        await pc.addIceCandidate(new RTCIceCandidate(candidate));
-        console.log("ICE-кандидат добавлен успешно");
+        newPeer.signal(offer.offer);
       } catch (error) {
-        console.error("Ошибка добавления ICE-кандидата:", error);
+        console.error("❌ Ошибка при обработке offer:", error);
       }
     });
+
+    socket.on("ice-candidate", (candidate) => {
+      if (candidate) newPeer.signal(candidate);
+    });
+
+    setPeer(newPeer);
+
 
     return () => {
       socket.disconnect();
-      pc.close();
     };
   }, [roomId, username]);
 
@@ -129,7 +70,7 @@ const VideoReceiver: React.FC<VideoReceiverProps> = ({ roomId, username }) => {
         playsInline
         controls
         muted
-        className="w-full h-full object-cover"
+        className="w-full object-cover"
       />
       <div className="absolute top-4 left-4 bg-black/50 px-3 py-1 rounded-full">
         <span className="text-white text-sm">{username}</span>
