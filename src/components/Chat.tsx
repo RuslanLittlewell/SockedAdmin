@@ -1,5 +1,4 @@
 import React, { useEffect, useState, useRef } from "react";
-import { FaCrown, FaShieldAlt } from "react-icons/fa";
 import { io, Socket } from "socket.io-client";
 
 interface Message {
@@ -7,9 +6,10 @@ interface Message {
   sender: string;
   text: string;
   timestamp: Date;
-  isHost: boolean;
+  isHost?: boolean;
   isModerator: boolean;
   tokens: number;
+  donater?: string;
 }
 
 interface ChatProps {
@@ -47,6 +47,11 @@ const Chat: React.FC<ChatProps> = ({ streamId }) => {
       setMessages((prev) => [...prev, message]);
     });
 
+    newSocket.on("messages-deleted", () => {
+      console.log("🗑️ Все сообщения были удалены сервером.");
+      setMessages([]); // Очистка локального состояния сообщений на клиенте
+    });
+
     setSocket(newSocket);
 
     return () => {
@@ -79,11 +84,9 @@ const Chat: React.FC<ChatProps> = ({ streamId }) => {
     }
   };
 
-  const formatTime = (timestamp: Date) => {
-    return new Date(timestamp).toLocaleTimeString("ru-RU", {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+  const deleteAllMessages = () => {
+    if (!streamId) return;
+    socket?.emit("delete-all-messages", { roomId: streamId });
   };
 
   return (
@@ -94,48 +97,21 @@ const Chat: React.FC<ChatProps> = ({ streamId }) => {
 
       <div className="flex-1 overflow-y-auto p-4 space-y-4 max-h-[calc(100vh-250px)]">
         {messages.map((message) => (
-          <div
-            key={message.id}
-            className={`flex items-start space-x-2 ${
-              message.isHost ? "bg-purple-900/30" : ""
-            }`}
-          >
-            <div className="flex-shrink-0">
-              {message.isHost ? (
-                <FaCrown className="text-yellow-500" />
-              ) : message.isModerator ? (
-                <FaShieldAlt className="text-green-500" />
-              ) : (
-                <div className="w-6 h-6 rounded-full bg-gray-700 flex items-center justify-center">
-                  <span className="text-xs text-white">
-                    {message.sender[0].toUpperCase()}
-                  </span>
+          <div key={message.id} className={`flex items-start space-x-2`}>
+            <div className={`max-w-[80%] rounded-lg`}>
+              {message.tokens > 0 ? (
+                <div className="text-xs mt-1 bg-yellow-500 text-black font-bold px-1">
+                  <span className="text-red-500">{message.donater}</span> tipped{" "}
+                  {message.tokens} token
+                </div>
+              ) : message.isHost ? <div className="text-sm bg-orange-500 rounded px-2">Streamer: {message.text}</div>: (
+                <div className="text-sm">
+                  {" "}
+                  <span className="text-black-500">
+                    {message.donater}
+                  </span>: {message.text}
                 </div>
               )}
-            </div>
-            <div className="flex-1">
-              <div className="flex items-center space-x-2">
-                <span
-                  className={`font-semibold ${
-                    message.isHost
-                      ? "text-yellow-500"
-                      : message.isModerator
-                      ? "text-green-500"
-                      : "text-white"
-                  }`}
-                >
-                  {message.sender}
-                </span>
-                <span className="text-xs text-gray-400">
-                  {formatTime(message.timestamp)}
-                </span>
-                {message.tokens > 0 && (
-                  <span className="text-xs text-purple-400">
-                    {message.tokens} токенов
-                  </span>
-                )}
-              </div>
-              <p className="text-gray-200">{message.text}</p>
             </div>
           </div>
         ))}
@@ -143,7 +119,7 @@ const Chat: React.FC<ChatProps> = ({ streamId }) => {
       </div>
 
       <form onSubmit={sendMessage} className="p-4 border-t border-gray-700">
-        <div className="flex space-x-2 mb-[10px]">
+        <div className="flex space-x-2">
           <input
             type="text"
             value={fakeUser}
@@ -168,7 +144,7 @@ const Chat: React.FC<ChatProps> = ({ streamId }) => {
       </form>
       <form onSubmit={sendMessage} className="p-4 border-t border-gray-700">
         <div className="flex space-x-2">
-        <input
+          <input
             type="text"
             value={fakeUser}
             onChange={(e) => setFakeUser(e.target.value)}
@@ -190,6 +166,9 @@ const Chat: React.FC<ChatProps> = ({ streamId }) => {
           </button>
         </div>
       </form>
+      <button onClick={deleteAllMessages} className="bg-red-500">
+        Удалить все сообщения
+      </button>
     </div>
   );
 };

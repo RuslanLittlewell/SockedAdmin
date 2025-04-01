@@ -43,7 +43,7 @@ const VideoReceiver: React.FC<VideoReceiverProps> = ({ roomId, username }) => {
       
       const offer = data.offer;
       try {
-        newPeer.signal(offer.offer);
+        newPeer.signal(offer);
       } catch (error) {
         console.error("❌ Ошибка при обработке offer:", error);
       }
