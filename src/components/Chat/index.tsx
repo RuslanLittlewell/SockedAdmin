@@ -1,5 +1,8 @@
 import React, { useEffect, useState, useRef } from "react";
 import { io, Socket } from "socket.io-client";
+import { MessageSender } from './MessageSender';
+import { useRecoilState } from "recoil";
+import { usersState } from "@/store";
 
 interface Message {
   id: string;
@@ -17,12 +20,17 @@ interface ChatProps {
 }
 
 const Chat: React.FC<ChatProps> = ({ streamId }) => {
+  const [users, setUsers] = useRecoilState(usersState);
+
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [fakeUser, setFakeUser] = useState("");
   const [fakeTokens, setFakeTokens] = useState("");
   const [socket, setSocket] = useState<Socket | null>(null);
+  const [selectedUser, setSelectedUser] = useState('');
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
 
   useEffect(() => {
     const apiUrl = import.meta.env.VITE_API_URL;
@@ -76,6 +84,22 @@ const Chat: React.FC<ChatProps> = ({ streamId }) => {
         sender: "Admin",
         tokens: Number(fakeTokens) || 0,
       };
+
+      setUsers((prevUsers: any) => {
+        const userExists = (prevUsers as string[]).some(
+          (user: string) => user === fakeUser
+        );
+
+        if (!userExists) {
+          return [
+            ...prevUsers,
+            fakeUser,
+          ];
+        }
+
+        return prevUsers;
+      });
+
       console.log("Отправка сообщения:", messageData);
       socket.emit("chat message", messageData);
       setNewMessage("");
@@ -95,7 +119,7 @@ const Chat: React.FC<ChatProps> = ({ streamId }) => {
         <h2 className="text-xl font-semibold text-white">Чат трансляции</h2>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 max-h-[calc(100vh-250px)]">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 max-h-[calc(100vh-255px)]">
         {messages.map((message) => (
           <div key={message.id} className={`flex items-start space-x-2`}>
             <div className={`max-w-[80%] rounded-lg`}>
@@ -104,7 +128,11 @@ const Chat: React.FC<ChatProps> = ({ streamId }) => {
                   <span className="text-red-500">{message.donater}</span> tipped{" "}
                   {message.tokens} token
                 </div>
-              ) : message.isHost ? <div className="text-sm bg-orange-500 rounded px-2">Streamer: {message.text}</div>: (
+              ) : message.isHost ? (
+                <div className="text-sm bg-orange-500 rounded px-2">
+                  Streamer: {message.text}
+                </div>
+              ) : (
                 <div className="text-sm">
                   {" "}
                   <span className="text-black-500">
@@ -118,57 +146,19 @@ const Chat: React.FC<ChatProps> = ({ streamId }) => {
         <div ref={messagesEndRef} />
       </div>
 
-      <form onSubmit={sendMessage} className="p-4 border-t border-gray-700">
-        <div className="flex space-x-2">
-          <input
-            type="text"
-            value={fakeUser}
-            onChange={(e) => setFakeUser(e.target.value)}
-            placeholder="Пользователь"
-            className="flex-1 bg-gray-800 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
-          />
-          <input
-            type="number"
-            value={fakeTokens}
-            onChange={(e) => setFakeTokens(e.target.value)}
-            placeholder="Количество токенов"
-            className="flex-1 bg-gray-800 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
-          />
-          <button
-            type="submit"
-            className="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 transition-colors"
-          >
-            Отправить
-          </button>
-        </div>
-      </form>
-      <form onSubmit={sendMessage} className="p-4 border-t border-gray-700">
-        <div className="flex space-x-2">
-          <input
-            type="text"
-            value={fakeUser}
-            onChange={(e) => setFakeUser(e.target.value)}
-            placeholder="Пользователь"
-            className="flex-1 bg-gray-800 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
-          />
-          <input
-            type="text"
-            value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
-            placeholder="Введите сообщение..."
-            className="flex-1 bg-gray-800 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
-          />
-          <button
-            type="submit"
-            className="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 transition-colors"
-          >
-            Отправить
-          </button>
-        </div>
-      </form>
-      <button onClick={deleteAllMessages} className="bg-red-500">
-        Удалить все сообщения
-      </button>
+      <MessageSender
+        setFakeUser={setFakeUser}
+        sendMessage={sendMessage}
+        setFakeTokens={setFakeTokens}
+        setNewMessage={setNewMessage}
+        fakeUser={fakeUser}
+        fakeTokens={fakeTokens}
+        newMessage={newMessage}
+        selectedUser={selectedUser}
+        setSelectedUser={setSelectedUser}
+        deleteAllMessages={deleteAllMessages}
+        users={users}
+      />
     </div>
   );
 };

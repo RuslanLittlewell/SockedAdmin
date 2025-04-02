@@ -14,6 +14,7 @@ export default defineConfig({
       '@': resolve(__dirname, './src'),
       "simple-peer": "simple-peer/simplepeer.min.js",
       crypto: 'crypto-browserify',
+      store: 'store',
     },
   },
   define: {
