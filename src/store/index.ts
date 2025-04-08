@@ -1,6 +1,10 @@
 import { atom } from "recoil";
 
-export const usersState = atom<string[]>({
+export interface UserStateProps {
+  name: string;
+  color: string;
+}
+export const usersState = atom<UserStateProps[]>({
   key: "users",
   default: [],
 });

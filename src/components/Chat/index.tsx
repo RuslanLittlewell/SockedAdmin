@@ -3,6 +3,7 @@ import { io, Socket } from "socket.io-client";
 import { MessageSender } from './MessageSender';
 import { useRecoilState } from "recoil";
 import { usersState } from "@/store";
+import clsx from "clsx";
 
 interface Message {
   id: string;
@@ -13,6 +14,7 @@ interface Message {
   isModerator: boolean;
   tokens: number;
   donater?: string;
+  color: string;
 }
 
 interface ChatProps {
@@ -23,11 +25,14 @@ const Chat: React.FC<ChatProps> = ({ streamId }) => {
   const [users, setUsers] = useRecoilState(usersState);
 
   const [messages, setMessages] = useState<Message[]>([]);
+  const [userColor, setUserColor] = useState<string>('text-green-500');
   const [newMessage, setNewMessage] = useState("");
   const [fakeUser, setFakeUser] = useState("");
   const [fakeTokens, setFakeTokens] = useState("");
   const [socket, setSocket] = useState<Socket | null>(null);
   const [selectedUser, setSelectedUser] = useState('');
+  const [isPrivateChat, setPrivateChat] = useState(false);
+
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -46,12 +51,10 @@ const Chat: React.FC<ChatProps> = ({ streamId }) => {
     });
 
     newSocket.on("messageHistory", (history: Message[]) => {
-      console.log("Получена история сообщений:", history);
       setMessages(history);
     });
 
     newSocket.on("chat message", (message: Message) => {
-      console.log("Получено новое сообщение:", message);
       setMessages((prev) => [...prev, message]);
     });
 
@@ -60,6 +63,13 @@ const Chat: React.FC<ChatProps> = ({ streamId }) => {
       setMessages([]); // Очистка локального состояния сообщений на клиенте
     });
 
+    newSocket.on("start-private", () => {
+      setPrivateChat(true)
+    });
+
+    newSocket.on("finish-private", () => {
+      setPrivateChat(false)
+    });
     setSocket(newSocket);
 
     return () => {
@@ -81,26 +91,24 @@ const Chat: React.FC<ChatProps> = ({ streamId }) => {
       const messageData = {
         text: newMessage,
         donater: fakeUser,
+        color: userColor,
         sender: "Admin",
         tokens: Number(fakeTokens) || 0,
       };
 
       setUsers((prevUsers: any) => {
-        const userExists = (prevUsers as string[]).some(
-          (user: string) => user === fakeUser
-        );
+        const userExists = prevUsers.find((i: any) => i.name === fakeUser)
 
         if (!userExists) {
           return [
             ...prevUsers,
-            fakeUser,
+            { name: fakeUser, color: userColor },
           ];
         }
 
         return prevUsers;
       });
 
-      console.log("Отправка сообщения:", messageData);
       socket.emit("chat message", messageData);
       setNewMessage("");
       setFakeTokens("");
@@ -113,6 +121,10 @@ const Chat: React.FC<ChatProps> = ({ streamId }) => {
     socket?.emit("delete-all-messages", { roomId: streamId });
   };
 
+  const requestPrivate = () => {
+    if (!streamId) return;
+    socket?.emit("ask-private", { roomId: streamId, username: fakeUser })
+  }
   return (
     <div className="flex flex-col h-full bg-gray-900 rounded-lg overflow-hidden">
       <div className="p-4 border-b border-gray-700">
@@ -135,7 +147,7 @@ const Chat: React.FC<ChatProps> = ({ streamId }) => {
               ) : (
                 <div className="text-sm">
                   {" "}
-                  <span className="text-black-500">
+                  <span className={clsx("text-black-500", message.color)}>
                     {message.donater}
                   </span>: {message.text}
                 </div>
@@ -147,6 +159,8 @@ const Chat: React.FC<ChatProps> = ({ streamId }) => {
       </div>
 
       <MessageSender
+        setUserColor={setUserColor}
+        userColor={userColor}
         setFakeUser={setFakeUser}
         sendMessage={sendMessage}
         setFakeTokens={setFakeTokens}
@@ -158,6 +172,8 @@ const Chat: React.FC<ChatProps> = ({ streamId }) => {
         setSelectedUser={setSelectedUser}
         deleteAllMessages={deleteAllMessages}
         users={users}
+        isPrivateChat={isPrivateChat}
+        requestPrivate={requestPrivate}
       />
     </div>
   );

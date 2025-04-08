@@ -53,6 +53,12 @@ const VideoReceiver: React.FC<VideoReceiverProps> = ({ roomId, username }) => {
       if (candidate) newPeer.signal(candidate);
     });
 
+    socket.on("connect", () => {
+      console.log("✅ Viewer подключен");
+      // Уведомляем сервер, что мы присоединяемся к активному стриму
+      socket.emit("join-room", { roomId, username });
+    });
+    
     return () => {
       socket.disconnect();
     };
@@ -68,9 +74,6 @@ const VideoReceiver: React.FC<VideoReceiverProps> = ({ roomId, username }) => {
         muted
         className="w-full object-cover"
       />
-      <div className="absolute top-4 left-4 bg-black/50 px-3 py-1 rounded-full">
-        <span className="text-white text-sm">{username}</span>
-      </div>
     </div>
   );
 };
