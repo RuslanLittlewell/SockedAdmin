@@ -1,34 +1,31 @@
 import { FC, useState } from "react";
-import ColorSelect from "../ColorSelect";
-import { UserStateProps } from "@/store";
 import { IoSend } from "react-icons/io5";
+import ColorSelect from "../ColorSelect";
 import { sortedUsers } from "./helpers";
+import { UserStateProps } from "@/store";
 
 interface Props {
-  setFakeUser: (i: string) => void;
   setFakeTokens: (i: string) => void;
   setNewMessage: (i: string) => void;
-  deleteAllMessages: () => void;
+  setFakeUser: (i: string) => void;
   sendMessage: any;
-  users: UserStateProps[];
-  fakeUser: string;
   fakeTokens: string;
   newMessage: string;
+  fakeUser: string;
+  users: UserStateProps[];
 }
-export const MessageSender: FC<Props> = ({
-  setFakeUser,
+export const PrivateMessageSender: FC<Props> = ({
   setFakeTokens,
   setNewMessage,
-  deleteAllMessages,
+  setFakeUser,
   sendMessage,
   fakeTokens,
   newMessage,
   fakeUser,
-  users,
+  users
 }) => {
   const [tab, setTab] = useState(0);
   const tabsName = ["Сообщение", "Токен"];
-
   const sorted = sortedUsers(users);
 
   return (
@@ -50,8 +47,9 @@ export const MessageSender: FC<Props> = ({
         onSubmit={(e) => sendMessage(e, tab == 2)}
         className="pl-[2px] py-4 border-t border-gray-700"
       >
+        
         <div className="flex space-x-2">
-          <ColorSelect
+        <ColorSelect
             onChange={setFakeUser}
             items={sorted}
             value={fakeUser}
@@ -65,7 +63,7 @@ export const MessageSender: FC<Props> = ({
               className="flex-1 bg-white/10 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           )}
-          {(tab === 0) && (
+          {tab === 0 && (
             <input
               type="text"
               value={newMessage}
@@ -82,9 +80,6 @@ export const MessageSender: FC<Props> = ({
           </button>
         </div>
       </form>
-      <button onClick={deleteAllMessages} className="bg-red-400 w-full">
-        Удалить все сообщения
-      </button>
     </div>
   );
 };

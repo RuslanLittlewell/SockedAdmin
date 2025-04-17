@@ -1,39 +1,34 @@
+import { UserStateProps } from '@/store';
 import { useState, useRef, useEffect, FC, MouseEvent } from 'react';
-
-interface ColorOption {
-  value: string;
-  label: string;
-  colorClass: string;
-}
 
 interface Props {
   onChange: (e: string) => void;
   value: string;
+  items: UserStateProps[];
 }
-const colorOptions: ColorOption[] = [
-  { value: 'text-green-500', label: 'Зеленый', colorClass: 'bg-green-500' },
-  { value: 'text-red-500', label: 'Красный', colorClass: 'bg-red-500' },
-  { value: 'text-purple-500', label: 'Фиолетовый', colorClass: 'bg-purple-500' },
-  { value: 'text-pink-500', label: 'Розовый', colorClass: 'bg-pink-500' },
-  { value: 'text-blue-500', label: 'Синий', colorClass: 'bg-blue-500' },
-];
 
 const ColorSelect: FC<Props> = ({
   onChange,
-  value
+  value,
+  items
 }) => {
-  const [selected, setSelected] = useState<ColorOption>(colorOptions.find(i => i.value === value) || colorOptions[0]);
+  const [selected, setSelected] = useState<UserStateProps>(items[0]);
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const handleSelect = (option: ColorOption) => {
+  const handleSelect = (option: UserStateProps) => {
     setSelected(option);
-    onChange(option.value);
+    onChange(option.name);
     setIsOpen(false);
   };
-
   // Закрытие выпадающего меню при клике вне его области
+  console.log(value)
   useEffect(() => {
+    if(value) {
+      const val = items?.find(i => i.name === value)
+     setSelected(val as UserStateProps);
+    }
+
     const handleClickOutside = (event: MouseEvent | Event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsOpen(false);
@@ -43,16 +38,16 @@ const ColorSelect: FC<Props> = ({
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, []);
+  }, [items]);
 
   return (
-    <div className="relative w-14" ref={dropdownRef}>
+    <div className="relative" ref={dropdownRef}>
       <div
-        className=" bg-gray-800 h-full items-center space-between flex text-white rounded-lg px-2 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
+        className="bg-white/10 h-full items-center space-between flex text-white rounded-lg px-2 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
         onClick={() => setIsOpen((prev) => !prev)}
       >
         <div className="flex items-center w-full">
-          <div className={`w-full h-4 rounded ${selected.colorClass} mr-2`}></div>
+          <div className={`w-full h-4 items-center flex ${selected?.color} mr-2`}>{selected?.name}</div>
         </div>
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path
@@ -64,14 +59,14 @@ const ColorSelect: FC<Props> = ({
         </svg>
       </div>
       {isOpen && (
-        <div className="absolute z-10 bottom-0 rounded  mt-1 w-full bg-gray-800 text-white border-gray-300 rounded shadow-lg">
-          {colorOptions.map((option) => (
+        <div className="absolute w-[140px] h-[300px] overflow-auto z-10 bottom-0 rounded  mt-1 w-full bg-gray-800 text-white border-gray-300 rounded shadow-lg">
+          {items.map((option) => (
             <div
-              key={option.value}
+              key={option.id}
               className="flex items-center p-2 hover:bg-gray-900 cursor-pointer"
               onClick={() => handleSelect(option)}
             >
-              <div className={`w-full h-4 rounded ${option.colorClass}`}></div>
+              <div className={`w-full h-4 rounded ${option.color}`}>{option.name}</div>
             </div>
           ))}
         </div>

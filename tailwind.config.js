@@ -11,6 +11,13 @@ export default {
       },
     },
   },
+  safelist: [
+    'text-green-500',
+    'text-red-500',
+    'text-purple-500',
+    'text-pink-500',
+    'text-blue-500',
+  ],
   plugins: [
     function({ addUtilities }) {
       addUtilities({
