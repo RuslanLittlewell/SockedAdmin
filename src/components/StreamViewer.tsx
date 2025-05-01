@@ -26,9 +26,6 @@ const VideoReceiver: React.FC<VideoReceiverProps> = ({ roomId, username }) => {
       socket.emit("answer", { answer: data, roomId, username });
     });
 
-    newPeer.on("connect", () => {
-      console.log("✅ Viewer подключен");
-    });
 
     newPeer.on("stream", (remoteStream) => {
       console.log("📡 Получен поток от Broadcaster");
@@ -38,18 +35,13 @@ const VideoReceiver: React.FC<VideoReceiverProps> = ({ roomId, username }) => {
       }
     });
 
-    socket.on("offer", (data) => {
-      console.log("📡 Получен offer от Broadcaster", data);
-      
-      const offer = data.offer;
-      try {
-        newPeer.signal(offer);
-      } catch (error) {
-        console.error("❌ Ошибка при обработке offer:", error);
-      }
+    socket.on("offer", ({ offer }) => {
+      console.log("📡 Первый и единственный offer от Broadcaster", offer);
+      newPeer.signal(offer);
     });
 
     socket.on("ice-candidate", (candidate) => {
+      console.log('candidate', candidate)
       if (candidate) newPeer.signal(candidate);
     });
 
@@ -59,8 +51,16 @@ const VideoReceiver: React.FC<VideoReceiverProps> = ({ roomId, username }) => {
       socket.emit("join-room", { roomId, username });
     });
     
+    socket?.on("broadcast-ended", () => {
+      console.log(true, 'OFFSTREAM')
+      if (videoRef.current) {
+        videoRef.current.srcObject = null;
+      }
+    });
+
     return () => {
       socket.disconnect();
+      newPeer.destroy();
     };
   }, [roomId, username]);
 

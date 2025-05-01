@@ -22,7 +22,6 @@ const ColorSelect: FC<Props> = ({
     setIsOpen(false);
   };
   // Закрытие выпадающего меню при клике вне его области
-  console.log(value)
   useEffect(() => {
     if(value) {
       const val = items?.find(i => i.name === value)
