@@ -88,7 +88,7 @@ const Chat: React.FC<ChatProps> = ({ streamId }) => {
       streamId={streamId}
     />,
   ];
-  const tabNames = ["Общий чат", "Приватный чат"];
+  const tabNames = ["Общий чат", "Личные соoбщения"];
   return (
     <div className="flex flex-col w-3/5 h-full overflow-hidden">
       <div className="border-b border-gray-700 grid grid-cols-2 divide-x-2 divide-white/40">

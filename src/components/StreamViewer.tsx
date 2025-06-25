@@ -7,120 +7,215 @@ interface VideoReceiverProps {
   username: string;
 }
 
- const VideoReceiver: React.FC<VideoReceiverProps> = ({ roomId, username }) => {
-  const videoRef = useRef<HTMLVideoElement>(null);
+const VideoReceiver: React.FC<VideoReceiverProps> = ({ roomId, username }) => {
+  const cameraVideoRef = useRef<HTMLVideoElement>(null);
+  const screenVideoRef = useRef<HTMLVideoElement>(null);
+
   const peerRef = useRef<SimplePeer.Instance | null>(null);
+  const screenPeerRef = useRef<SimplePeer.Instance | null>(null);
   const socketRef = useRef<Socket | null>(null);
+
   const [isConnected, setIsConnected] = useState(false);
+  const [isLive, setIsLive] = useState();
 
-  const setupPeer = () => {
-    // destroy any existing peer
-    peerRef.current?.destroy();
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (socketRef.current) {
+        socketRef.current.emit("check-status", { roomId });
+      }
+    }, 5000);
 
-    const p = new SimplePeer({
+    return () => {
+      clearInterval(interval);
+      socketRef.current?.off("check-status");
+    };
+  }, [roomId]);
+
+  const setupPeer = (socket: Socket) => {
+    if (peerRef.current) {
+      peerRef.current.destroy();
+      peerRef.current = null;
+    }
+
+    const peer = new SimplePeer({
       initiator: false,
       trickle: false,
-      config: {
-        iceServers: [
-          { urls: "stun:stun.l.google.com:19302" },
-          { urls: "stun:global.stun.twilio.com:3478" },
-        ],
-      },
+    });
+    peerRef.current = peer;
+
+    peer.on("signal", (answer) => {
+      socket.emit("answer", { answer, roomId, username });
     });
 
-    p.once("signal", (answer) => {
-      socketRef.current?.emit("answer", { answer, roomId, username });
+    peer.on("stream", (stream) => {
+      console.log("🎥 Camera stream received");
+      if (cameraVideoRef.current) {
+        cameraVideoRef.current.srcObject = stream;
+      }
     });
 
-    p.on("stream", (stream) => {
-      if (videoRef.current) videoRef.current.srcObject = stream;
-    });
-
-    p.on("connect", () => {
-      console.log("✅ Peer соединен");
+    peer.on("connect", () => {
+      console.log("✅ Camera Peer connected");
       setIsConnected(true);
     });
 
-    p.on("error", (err) => {
-      console.error("SimplePeer error:", err);
-      setIsConnected(false);
-      // destroy and rebuild everything
-      socketRef.current?.off();
-      setupSocketAndPeer();
-    });
-
-    p.on("close", () => {
-      console.log("❌ Peer закрыт");
+    peer.on("error", (err) => {
+      console.error("Camera Peer error:", err);
       setIsConnected(false);
     });
 
-    peerRef.current = p;
+    peer.on("close", () => {
+      console.log("❌ Camera Peer closed");
+      setIsConnected(false);
+    });
+  };
+
+  const setupScreenPeer = (socket: Socket) => {
+    if (screenPeerRef.current) {
+      screenPeerRef.current.destroy();
+      screenPeerRef.current = null;
+    }
+
+    const screenPeer = new SimplePeer({
+      initiator: false,
+      trickle: false,
+    });
+    screenPeerRef.current = screenPeer;
+
+    screenPeer.on("signal", (answer) => {
+      socket.emit("screen-answer", { answer, roomId, username });
+    });
+
+    screenPeer.on("stream", (screenStream) => {
+      console.log("🎥 Screen stream received");
+      if (screenVideoRef.current) {
+        screenVideoRef.current.srcObject = screenStream;
+      }
+    });
+
+    screenPeer.on("connect", () => {
+      console.log("✅ Screen Peer connected");
+    });
+
+    screenPeer.on("error", (err) => {
+      console.error("Screen Peer error:", err);
+    });
+
+    screenPeer.on("close", () => {
+      console.log("❌ Screen Peer closed");
+    });
   };
 
   const setupSocketAndPeer = () => {
-    // destroy old socket
     socketRef.current?.disconnect();
     const socket = io(import.meta.env.VITE_API_URL, {
       query: { roomId, username, role: "viewer" },
     });
     socketRef.current = socket;
 
-    setupPeer();
+    // Один раз вешаем обработчики
+    socket.on("offer", ({ offer }) => {
+      console.log("📡 Got stream offer");
 
-    socket.on("connect", () => {
-      console.log("✅ Socket connected");
-      socket.emit("get-offer", { roomId });
+      if (!peerRef.current) {
+        setupPeer(socket);
+      }
+
+      peerRef.current?.signal(offer);
     });
 
-    socket.once("offer", ({ offer }) => {
-      console.log("📡 Got offer");
-      try {
-        peerRef.current?.signal(offer);
-      } catch (e) {
-        console.error("Error signaling offer:", e);
+    socket.on("screen-offer", ({ offer }) => {
+      console.log("📡 Got screen offer");
+
+      if (!screenPeerRef.current) {
+        setupScreenPeer(socket);
       }
+
+      screenPeerRef.current?.signal(offer);
     });
 
-    socket.once("ice-candidate", (candidate) => {
-      console.log("📡 Got ICE candidate");
-      try {
-        peerRef.current?.signal(candidate);
-      } catch (e) {
-        console.error("Error signaling candidate:", e);
-      }
+    setupPeer(socket);
+    setupScreenPeer(socket);
+    socket.emit("check-status", { roomId });
+    socket.on("check-status", (data) => {
+      setIsLive(data.isLive);
     });
 
     socket.on("broadcast-ended", () => {
       console.log("📡 Broadcast ended");
-      if (videoRef.current) videoRef.current.srcObject = null;
+      if (cameraVideoRef.current) cameraVideoRef.current.srcObject = null;
+      peerRef.current?.destroy();
+      peerRef.current = null;
       setIsConnected(false);
     });
 
-    socket.on("error", (err) => {
-      console.error("Socket error:", err);
+    socket.on("screen-ended", () => {
+      console.log("📡 Screen ended");
+      if (screenVideoRef.current) screenVideoRef.current.srcObject = null;
+      screenPeerRef.current?.destroy();
+      screenPeerRef.current = null;
     });
   };
 
   useEffect(() => {
     setupSocketAndPeer();
     return () => {
-      socketRef.current?.disconnect();
       peerRef.current?.destroy();
+      peerRef.current = null;
+      screenPeerRef.current?.destroy();
+      screenPeerRef.current = null;
+      socketRef.current?.disconnect();
     };
   }, [roomId, username]);
 
+  const reconnectToStream = () => {
+    console.log("🔄 Reconnect button clicked");
+    socketRef.current?.emit("joined", { roomId });
+  };
+
   return (
-    <div className="relative w-2/5 h-full bg-black overflow-hidden">
-      <video ref={videoRef} autoPlay playsInline controls muted className="w-full object-cover" />
+    <div className="relative w-2/5 h-full bg-black overflow-hidden flex flex-col justify-between">
+      <video
+        ref={cameraVideoRef}
+        autoPlay
+        playsInline
+        controls
+        className="w-full object-cover"
+      />
+      <video
+        ref={screenVideoRef}
+        autoPlay
+        playsInline
+        controls
+        muted
+        className="w-full object-cover"
+      />
       {!isConnected && (
         <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="text-white text-center">
-            <p>Подключение к стриму...</p>
-            <p className="text-sm">Пожалуйста, подождите</p>
+          <div className="text-white text-center flex flex-col items-center gap-2">
+            {isLive ? (
+              <div className="flex items-center gap-2 text-red-600 font-bold">
+                <span className="relative flex h-3 w-3">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-3 w-3 bg-red-600"></span>
+                </span>
+                Live
+              </div>
+            ) : (
+              <div className="text-gray-500 font-semibold">Offline</div>
+            )}
+            <button
+              onClick={reconnectToStream}
+              disabled={!isLive}
+              className="bg-blue-600 px-4 py-2 rounded text-white"
+            >
+              Connect
+            </button>
           </div>
         </div>
       )}
     </div>
   );
 };
+
 export default VideoReceiver;
