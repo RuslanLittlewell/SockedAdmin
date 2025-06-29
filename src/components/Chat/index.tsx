@@ -1,9 +1,12 @@
 import React, { useEffect, useState } from "react";
 import { io, Socket } from "socket.io-client";
 import { useRecoilState } from "recoil";
-import { Message, messageState, privateMessageState, usersState, UserStateProps } from "@/store";
+import { toast } from 'react-toastify';
+import { Message, messageState, privateChatUserState, privateMessageState, usersState, UserStateProps } from "@/store";
 import { GeneralChat } from "./GeneralChat";
 import { PrivateChat } from "./PrivateChat";
+import MessageSounds from "@/assets/sounds/message.mp3";
+
 import clsx from "clsx";
 
 interface ChatProps {
@@ -13,7 +16,8 @@ interface ChatProps {
 const Chat: React.FC<ChatProps> = ({ streamId }) => {
   const [messages, setMessages] = useRecoilState(messageState);
   const [privateMessages, setPrivateMessages] = useRecoilState(privateMessageState);
-  const [_, setUsers] = useRecoilState(usersState);
+  const [fakeUser, setFakeUser] = useRecoilState(privateChatUserState);
+  const [users, setUsers] = useRecoilState(usersState);
   const [socket, setSocket] = useState<Socket | null>(null);
   const [isPrivateChat, setPrivateChat] = useState(false);
 
@@ -46,9 +50,20 @@ const Chat: React.FC<ChatProps> = ({ streamId }) => {
 
     newSocket.on("private-message", (message: Message) => {
       setPrivateMessages((prev) => [...prev, message]);
-      // if (message.tokens > 0) {
-      //   setTokens((i: number) => i + message.tokens);
-      // }
+      if(fakeUser !== message.toUser) {
+        new Audio(MessageSounds).play();
+        const findsUser = users.find(i => i.name === message.toUser);
+
+        const openChat = () => {
+          setTab(1);
+          setFakeUser(message.toUser)
+        }
+        toast(<div className={clsx("flex flex-col")} onClick={openChat}>
+          <div>To: <span className={clsx(findsUser?.color)}>{message.toUser}</span>:</div>
+          <div>{message.text}</div>
+        </div>);
+      }
+
     });
 
     newSocket.on("messages-deleted", () => {
@@ -97,7 +112,7 @@ const Chat: React.FC<ChatProps> = ({ streamId }) => {
             key={idx}
             onClick={() => setTab(idx)}
             className={clsx(
-              "p-4 text-xl font-semibold text-white text-center cursor-pointer",
+              "p-4 text-xl font-extralight text-white text-center cursor-pointer",
               idx === tab && "bg-white/10"
             )}
           >

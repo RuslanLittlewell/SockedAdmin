@@ -74,7 +74,7 @@ export const PrivateMessageSender: FC<Props> = ({
           )}
           <button
             type="submit"
-            className="bg-blue-400 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+            className="bg-white/10 text-white px-6 py-2 rounded-lg hover:bg-zinc-700 hover:outline-none hover:ring-0 transition-colors"
           >
            <IoSend />
           </button>

@@ -18,6 +18,7 @@ export interface Message {
   text: string;
   timestamp: Date;
   isHost?: boolean;
+  toUser: string;
   isModerator: boolean;
   tokens: number;
   donater?: string;

@@ -71,12 +71,12 @@ export const MessageSender: FC<Props> = ({
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
               placeholder="Введите сообщение..."
-              className="flex-1 bg-white/10 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="flex-1 bg-white/10 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-0 focus:ring-blue-500"
             />
           )}
           <button
             type="submit"
-            className="bg-blue-400 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+            className="bg-white/10 text-white px-6 py-2 rounded-lg hover:bg-zinc-700 hover:outline-none hover:ring-0 transition-colors"
           >
            <IoSend />
           </button>

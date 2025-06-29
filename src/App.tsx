@@ -6,7 +6,7 @@ function App() {
   const [streamId, _] = useState("test-room");
 
   return (
-    <div className="min-h-screen bg-slate-800">
+    <div className="min-h-screen bg-zinc-950">
       <div className="flex gap-1 h-[calc(100vh-0px)]">
         <StreamViewer roomId={streamId} username="Admin" />
         <Chat streamId={streamId} />

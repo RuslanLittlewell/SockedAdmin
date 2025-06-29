@@ -202,7 +202,7 @@ const VideoReceiver: React.FC<VideoReceiverProps> = ({ roomId, username }) => {
                 Live
               </div>
             ) : (
-              <div className="text-gray-500 font-semibold">Offline</div>
+              <div className="text-gray-500 font-extralight">Offline</div>
             )}
             <button
               onClick={reconnectToStream}
