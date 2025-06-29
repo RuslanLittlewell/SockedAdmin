@@ -1,8 +1,5 @@
 import { FC, useState } from "react";
 import { IoSend } from "react-icons/io5";
-import ColorSelect from "../ColorSelect";
-import { sortedUsers } from "./helpers";
-import { UserStateProps } from "@/store";
 
 interface Props {
   setFakeTokens: (i: string) => void;
@@ -11,22 +8,17 @@ interface Props {
   sendMessage: any;
   fakeTokens: string;
   newMessage: string;
-  fakeUser: string;
-  users: UserStateProps[];
+  fakeUser: string | undefined;
 }
 export const PrivateMessageSender: FC<Props> = ({
   setFakeTokens,
   setNewMessage,
-  setFakeUser,
   sendMessage,
   fakeTokens,
   newMessage,
-  fakeUser,
-  users
 }) => {
   const [tab, setTab] = useState(0);
   const tabsName = ["Сообщение", "Токен"];
-  const sorted = sortedUsers(users);
 
   return (
     <div className="p-2 border rounded-lg border-white/10">
@@ -49,11 +41,11 @@ export const PrivateMessageSender: FC<Props> = ({
       >
         
         <div className="flex space-x-2">
-        <ColorSelect
+        {/* <ColorSelect
             onChange={setFakeUser}
             items={sorted}
             value={fakeUser}
-          />
+          /> */}
           {tab === 1 && (
             <input
               type="number"

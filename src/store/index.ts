@@ -4,12 +4,14 @@ export interface UserStateProps {
   id: number;
   name: string;
   color: string;
+  joined: boolean;
 }
 
 export enum MessageType {
   Message  = 'message',
   Token    = 'token',
   Announce = 'announce',
+  Notify = 'notify',
 }
 
 export interface Message {
@@ -46,7 +48,7 @@ export const generalChatUserState = atom<string>({
   default: "",
 })
 
-export const privateChatUserState = atom<string>({
+export const privateChatUserState = atom<string | undefined>({
   key: "privateUser",
   default: "",
 })
