@@ -37,7 +37,7 @@ export const MessageSender: FC<Props> = ({
         {tabsName.map((i, idx) => (
           <div
             className={`p-2 rounded-[4px_4px_0_0] cursor-pointer ${
-              tab === idx ? "bg-blue-900" : "bg-blue-950"
+              tab === idx ? "bg-white/15" : "bg-white/5"
             }`}
             key={idx}
             onClick={() => setTab(idx)}

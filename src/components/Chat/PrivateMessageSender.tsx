@@ -4,11 +4,9 @@ import { IoSend } from "react-icons/io5";
 interface Props {
   setFakeTokens: (i: string) => void;
   setNewMessage: (i: string) => void;
-  setFakeUser: (i: string) => void;
   sendMessage: any;
   fakeTokens: string;
   newMessage: string;
-  fakeUser: string | undefined;
 }
 export const PrivateMessageSender: FC<Props> = ({
   setFakeTokens,
@@ -41,11 +39,6 @@ export const PrivateMessageSender: FC<Props> = ({
       >
         
         <div className="flex space-x-2">
-        {/* <ColorSelect
-            onChange={setFakeUser}
-            items={sorted}
-            value={fakeUser}
-          /> */}
           {tab === 1 && (
             <input
               type="number"

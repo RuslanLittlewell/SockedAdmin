@@ -13,7 +13,7 @@ export const UsersList: FC<Props> = ({ users, socket, setSelectedUser }) => {
   const handleToggleUser = (user: UserStateProps) => {
     socket?.emit("set-user-join", { id: user.id });
 
-    const message = user.joined ? "has left the room" : "join the room";
+    const message = user.joined ? `has left the room` : `join the room`;
     
     const messageData = {
       text: message,
@@ -34,13 +34,14 @@ export const UsersList: FC<Props> = ({ users, socket, setSelectedUser }) => {
             className={clsx("flex gap-2 text-left p-2 w-full")}
             key={user.id}
           >
-            <div className="font-black w-full grid [grid-template-columns:1fr_30px_30px] items-center">
+            <div className="font-black w-full grid [grid-template-columns:200px_1fr_30px_30px] items-center">
               <div
                 className={clsx("cursor-pointer", user.color)}
                 onClick={() => setSelectedUser(user.name)}
               >
                 {user.name}
               </div>
+              <div className="font-thin">{user.type}</div>
               <div
                 onClick={() => handleToggleUser(user)}
                 className="text-lg cursor-pointer font-black"

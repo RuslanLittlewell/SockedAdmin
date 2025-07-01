@@ -4,7 +4,6 @@ import clsx from "clsx";
 import {
   Message,
   MessageType,
-  privateChatUserState,
   privateMessageState,
   usersState,
 } from "@/store";
@@ -18,11 +17,15 @@ interface Props {
   streamId: string;
   socket: Socket | null;
   isPrivateChat: boolean;
+  selectedUser: string | undefined;
+  setSelectedUser: (name: string | undefined) => void;
   messages: Message[];
 }
 export const PrivateChat: FC<Props> = ({
   streamId,
   isPrivateChat,
+  selectedUser,
+  setSelectedUser,
   socket,
   messages,
 }) => {
@@ -31,12 +34,11 @@ export const PrivateChat: FC<Props> = ({
   const [_, setMessages] = useRecoilState(privateMessageState);
   const [newMessage, setNewMessage] = useState("");
   const [fakeTokens, setFakeTokens] = useState("");
-  const [fakeUser, setFakeUser] = useRecoilState(privateChatUserState);
 
   useEffect(() => {
     setMessages([]);
-    socket?.emit("get-private-messages-history", { username: fakeUser });
-  }, [fakeUser]);
+    socket?.emit("get-private-messages-history", { username: selectedUser });
+  }, [selectedUser]);
 
   useEffect(() => {
     scrollToBottom();
@@ -44,7 +46,7 @@ export const PrivateChat: FC<Props> = ({
 
   const requestPrivate = () => {
     if (!streamId) return;
-    socket?.emit("ask-private", { roomId: streamId, username: fakeUser });
+    socket?.emit("ask-private", { roomId: streamId, username: selectedUser });
   };
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -55,20 +57,32 @@ export const PrivateChat: FC<Props> = ({
 
   const sendMessage = (e: React.FormEvent) => {
     e.preventDefault();
-    if ((newMessage.trim() || fakeUser?.trim()) && socket) {
-      const messageData = {
-        text: newMessage,
-        donater: fakeUser,
-        toUser: fakeUser,
-        sender: "Admin",
-        tokens: Number(fakeTokens) || 0,
-        type: Number(fakeTokens) > 0 ? MessageType.Token : MessageType.Message,
-      };
+    if ((newMessage.trim() || selectedUser?.trim()) && socket) {
+      if (Number(fakeTokens) > 0) {
+        const messageData = {
+          text: newMessage,
+          donater: selectedUser,
+          sender: "Admin",
+          tokens: Number(fakeTokens) || 0,
+          type: MessageType.Token,
+        };
+        socket.emit("chat message", messageData);
+      } else {
+        const messageData = {
+          text: newMessage,
+          donater: selectedUser,
+          toUser: selectedUser,
+          sender: "Admin",
+          tokens: Number(fakeTokens) || 0,
+          type: MessageType.Message,
+        };
 
-      socket.emit("private-message", {
-        username: fakeUser,
-        message: messageData,
-      });
+        socket.emit("private-message", {
+          username: selectedUser,
+          message: messageData,
+        });
+      }
+
       setNewMessage("");
       setFakeTokens("");
     }
@@ -78,37 +92,39 @@ export const PrivateChat: FC<Props> = ({
     socket?.emit("private-finished", { roomId: streamId });
     const messageData = {
       text: "Private show has finised.",
-      donater: fakeUser,
+      donater: selectedUser,
       sender: "Admin",
       tokens: Number(fakeTokens) || 0,
       type: MessageType.Announce,
     };
 
     socket?.emit("private-message", {
-      username: fakeUser,
+      username: selectedUser,
       message: messageData,
     });
   };
-  const findUserColor = sortedUser.find(i => i.name === fakeUser);
+  const findUserColor = sortedUser.find((i) => i.name === selectedUser);
 
   return (
     <div className="relative h-full">
       <div
         className={clsx(
           "flex-1",
-          fakeUser ? "h-[calc(100%-135px)]" : "h-[calc(100%-185px)]"
+          selectedUser ? "h-[calc(100%-135px)]" : "h-[calc(100%-65px)]"
         )}
       >
-        {fakeUser && (
+        {selectedUser && (
           <div className="rounded-lg flex gap-1 w-full m-1 mb-0 justify-between items-center">
             <button
               className="flex items-center gap-2 bg-gray-600"
-              onClick={() => setFakeUser(undefined)}
+              onClick={() => setSelectedUser(undefined)}
             >
               <GoArrowLeft />
               Назад
             </button>
-            <div className={clsx('font-bold', findUserColor?.color)}>{fakeUser}</div>
+            <div className={clsx("font-bold", findUserColor?.color)}>
+              {selectedUser}
+            </div>
 
             <>
               <button
@@ -127,7 +143,7 @@ export const PrivateChat: FC<Props> = ({
             </>
           </div>
         )}
-        {fakeUser ? (
+        {selectedUser ? (
           <div className="flex-1 h-full overflow-y-auto p-4 space-y-4">
             {messages.map((message) => {
               const findUser = users.find((i) => i.name === message.donater);
@@ -161,18 +177,20 @@ export const PrivateChat: FC<Props> = ({
             <div ref={messagesEndRef} />
           </div>
         ) : (
-          <UsersList users={sortedUser} setSelectedUser={setFakeUser} socket={socket} />
+          <UsersList
+            users={sortedUser}
+            setSelectedUser={setSelectedUser}
+            socket={socket}
+          />
         )}
       </div>
-      <PrivateMessageSender
+      {selectedUser && <PrivateMessageSender
         setFakeTokens={setFakeTokens}
         setNewMessage={setNewMessage}
         sendMessage={sendMessage}
         newMessage={newMessage}
         fakeTokens={fakeTokens}
-        setFakeUser={setFakeUser}
-        fakeUser={fakeUser}
-      />
+      />}
     </div>
   );
 };

@@ -10,13 +10,14 @@ import MessageSounds from "@/assets/sounds/message.mp3";
 import clsx from "clsx";
 
 interface ChatProps {
-  streamId: string;
+  roomId: string;
+  username: string;
 }
 
-const Chat: React.FC<ChatProps> = ({ streamId }) => {
+const Chat: React.FC<ChatProps> = ({ roomId, username }) => {
   const [messages, setMessages] = useRecoilState(messageState);
   const [privateMessages, setPrivateMessages] = useRecoilState(privateMessageState);
-  const [fakeUser, setFakeUser] = useRecoilState(privateChatUserState);
+  const [selectedUser, setSelectedUser] = useRecoilState(privateChatUserState);
   const [users, setUsers] = useRecoilState(usersState);
   const [socket, setSocket] = useState<Socket | null>(null);
   const [isPrivateChat, setPrivateChat] = useState(false);
@@ -27,8 +28,8 @@ const Chat: React.FC<ChatProps> = ({ streamId }) => {
     const apiUrl = import.meta.env.VITE_API_URL;
     const newSocket = io(apiUrl, {
       query: {
-        roomId: streamId, 
-        username: "Admin",
+        roomId, 
+        username,
       },
     });
 
@@ -48,15 +49,16 @@ const Chat: React.FC<ChatProps> = ({ streamId }) => {
       setMessages((prev) => [...prev, message]);
     });
 
+
     newSocket.on("private-message", (message: Message) => {
       setPrivateMessages((prev) => [...prev, message]);
-      if(fakeUser !== message.toUser) {
+      if(selectedUser !== message.toUser) {
         new Audio(MessageSounds).play();
         const findsUser = users.find(i => i.name === message.toUser);
 
         const openChat = () => {
           setTab(1);
-          setFakeUser(message.toUser)
+          setSelectedUser(message.toUser)
         }
         toast(<div className={clsx("flex flex-col")} onClick={openChat}>
           <div>To: <span className={clsx(findsUser?.color)}>{message.toUser}</span>:</div>
@@ -88,32 +90,34 @@ const Chat: React.FC<ChatProps> = ({ streamId }) => {
     return () => {
       newSocket.close();
     };
-  }, [streamId]);
+  }, [roomId, selectedUser]);
 
   const tabs = [
     <GeneralChat
       messages={messages}
-      streamId={streamId}
+      streamId={roomId}
       socket={socket}
     />,
     <PrivateChat
       isPrivateChat={isPrivateChat}
       messages={privateMessages}
+      selectedUser={selectedUser}
+      setSelectedUser={setSelectedUser}
       socket={socket}
-      streamId={streamId}
+      streamId={roomId}
     />,
   ];
   const tabNames = ["Общий чат", "Личные соoбщения"];
   return (
-    <div className="flex flex-col w-3/5 h-full overflow-hidden">
-      <div className="border-b border-gray-700 grid grid-cols-2 divide-x-2 divide-white/40">
+    <div className="flex flex-col w-full h-screen overflow-hidden">
+      <div className="border-b border-gray-700 gap-2 grid grid-cols-2 p-1 pb-0">
         {tabNames.map((i, idx) => (
           <h2
             key={idx}
             onClick={() => setTab(idx)}
             className={clsx(
-              "p-4 text-xl font-extralight text-white text-center cursor-pointer",
-              idx === tab && "bg-white/10"
+              "p-4 text-xl font-extralight text-white text-center cursor-pointer rounded-[4px_4px_0_0]",
+              idx === tab ? "bg-white/15" : "bg-white/5"
             )}
           >
             {i}

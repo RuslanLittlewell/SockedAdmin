@@ -4,6 +4,7 @@ export interface UserStateProps {
   id: number;
   name: string;
   color: string;
+  type: string;
   joined: boolean;
 }
 
@@ -12,6 +13,13 @@ export enum MessageType {
   Token    = 'token',
   Announce = 'announce',
   Notify = 'notify',
+}
+
+interface RoomInfo {
+  roomId: string;
+  usersCount: number;
+  isLive: boolean;
+  usernames: string[];
 }
 
 export interface Message {
@@ -28,6 +36,9 @@ export interface Message {
   type: MessageType
 }
 
+export interface ModalState {
+  [key: string]: { visible: boolean }
+}
 export const usersState = atom<UserStateProps[]>({
   key: "users",
   default: [],
@@ -36,19 +47,32 @@ export const usersState = atom<UserStateProps[]>({
 export const messageState = atom<Message[]>({
   key: 'messages',
   default: []
-})
+});
 
 export const privateMessageState = atom<Message[]>({
   key: 'privateMessages',
   default: []
-})
+});
 
 export const generalChatUserState = atom<string>({
   key: "generalUser",
   default: "",
-})
+});
 
 export const privateChatUserState = atom<string | undefined>({
   key: "privateUser",
   default: "",
-})
+});
+
+export const roomsState = atom<RoomInfo[]>({
+  key: "rooms",
+  default: []
+});
+
+export const modalsState = atom<ModalState>({
+  key: "modals",
+  default: {
+    settings: { visible: false },
+    rooms: { visible: false },
+  }
+});

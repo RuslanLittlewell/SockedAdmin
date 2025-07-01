@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { io, Socket } from "socket.io-client";
 import SimplePeer from "simple-peer";
+import { ActionsBar } from "./ActionsBar";
 
 interface VideoReceiverProps {
   roomId: string;
@@ -138,6 +139,7 @@ const VideoReceiver: React.FC<VideoReceiverProps> = ({ roomId, username }) => {
     setupScreenPeer(socket);
     socket.emit("check-status", { roomId });
     socket.on("check-status", (data) => {
+      console.log(data)
       setIsLive(data.isLive);
     });
 
@@ -174,13 +176,14 @@ const VideoReceiver: React.FC<VideoReceiverProps> = ({ roomId, username }) => {
   };
 
   return (
-    <div className="relative w-2/5 h-full bg-black overflow-hidden flex flex-col justify-between">
+    <div className="relative w-full h-full bg-black overflow-hidden flex flex-col justify-between">
+      <ActionsBar />
       <video
         ref={cameraVideoRef}
         autoPlay
         playsInline
         controls
-        className="w-full object-cover"
+        className="w-[50%] object-cover m-auto"
       />
       <video
         ref={screenVideoRef}
@@ -204,13 +207,13 @@ const VideoReceiver: React.FC<VideoReceiverProps> = ({ roomId, username }) => {
             ) : (
               <div className="text-gray-500 font-extralight">Offline</div>
             )}
-            <button
+            {isLive && <button
               onClick={reconnectToStream}
               disabled={!isLive}
               className="bg-blue-600 px-4 py-2 rounded text-white"
             >
               Connect
-            </button>
+            </button>}
           </div>
         </div>
       )}
