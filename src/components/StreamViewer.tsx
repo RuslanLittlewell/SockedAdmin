@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { io, Socket } from "socket.io-client";
 import SimplePeer from "simple-peer";
 import { ActionsBar } from "./ActionsBar";
+import { useFetchRoom } from "@/hooks";
 
 interface VideoReceiverProps {
   roomId: string;
@@ -16,6 +17,7 @@ const VideoReceiver: React.FC<VideoReceiverProps> = ({ roomId, username }) => {
   const screenPeerRef = useRef<SimplePeer.Instance | null>(null);
   const socketRef = useRef<Socket | null>(null);
 
+  const fetchRoom = useFetchRoom();
   const [isConnected, setIsConnected] = useState(false);
   const [isLive, setIsLive] = useState();
 
@@ -25,6 +27,10 @@ const VideoReceiver: React.FC<VideoReceiverProps> = ({ roomId, username }) => {
         socketRef.current.emit("check-status", { roomId });
       }
     }, 5000);
+
+    socketRef.current?.on("stream-started", async () => {
+      fetchRoom()
+    });
 
     return () => {
       clearInterval(interval);
@@ -115,6 +121,7 @@ const VideoReceiver: React.FC<VideoReceiverProps> = ({ roomId, username }) => {
     socketRef.current = socket;
 
     // Один раз вешаем обработчики
+
     socket.on("offer", ({ offer }) => {
       console.log("📡 Got stream offer");
 
@@ -139,7 +146,6 @@ const VideoReceiver: React.FC<VideoReceiverProps> = ({ roomId, username }) => {
     setupScreenPeer(socket);
     socket.emit("check-status", { roomId });
     socket.on("check-status", (data) => {
-      console.log(data)
       setIsLive(data.isLive);
     });
 
@@ -161,6 +167,7 @@ const VideoReceiver: React.FC<VideoReceiverProps> = ({ roomId, username }) => {
 
   useEffect(() => {
     setupSocketAndPeer();
+
     return () => {
       peerRef.current?.destroy();
       peerRef.current = null;
@@ -207,13 +214,15 @@ const VideoReceiver: React.FC<VideoReceiverProps> = ({ roomId, username }) => {
             ) : (
               <div className="text-gray-500 font-extralight">Offline</div>
             )}
-            {isLive && <button
-              onClick={reconnectToStream}
-              disabled={!isLive}
-              className="bg-blue-600 px-4 py-2 rounded text-white"
-            >
-              Connect
-            </button>}
+            {isLive && (
+              <button
+                onClick={reconnectToStream}
+                disabled={!isLive}
+                className="bg-blue-600 px-4 py-2 rounded text-white"
+              >
+                Connect
+              </button>
+            )}
           </div>
         </div>
       )}

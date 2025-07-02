@@ -9,3 +9,7 @@ export const fetchRooms = () => {
 export const deleteRoom = (roomId: string) => {
   return axios.delete(`${API_URL}/rooms/${roomId}`);
 };
+
+export const createRoom = (roomId: string) => {
+  return axios.post(`${API_URL}/rooms`, { roomId })
+}

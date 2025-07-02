@@ -1,20 +1,14 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import StreamViewer from "./components/StreamViewer";
 import Chat from "./components/Chat";
 import { RoomSelector } from "./components/RoomSelecor";
-import { modalsState, roomsState } from "./store";
-import { useRecoilValue, useSetRecoilState } from "recoil";
-import { fetchRooms } from "./api/rooms";
+import { modalsState } from "./store";
+import { useRecoilValue } from "recoil";
 
 function App() {
   const username = "Admin";
   const [roomId, setRoomId] = useState<string>("");
-  const setRooms = useSetRecoilState(roomsState);
   const modals = useRecoilValue(modalsState);
-
-  useEffect(() => {
-    fetchRooms().then((res) => setRooms(res.data))
-  }, []);
 
 
   return (
