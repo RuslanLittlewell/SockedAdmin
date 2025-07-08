@@ -1,6 +1,7 @@
 import { useSetRecoilState } from "recoil";
 import { modalsState, ModalState, roomsState } from "./store";
 import { fetchRooms } from "./api/rooms";
+import { useEffect, useRef } from "react";
 
 export const useToggleModal = () => {
   const setModals = useSetRecoilState(modalsState);
@@ -24,3 +25,24 @@ export const useFetchRoom = () => {
     setRooms(res.data);
   };
 };
+
+
+export const useClickOutside = (handler: () => void) => {
+  const ref = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const listener = (event: MouseEvent) => {
+      if (!ref.current || ref.current.contains(event.target as Node)) {
+        return;
+      }
+      handler();
+    };
+
+    document.addEventListener("mousedown", listener);
+    return () => {
+      document.removeEventListener("mousedown", listener);
+    };
+  }, [handler]);
+
+  return ref;
+}

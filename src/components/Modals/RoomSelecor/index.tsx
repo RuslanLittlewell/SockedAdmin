@@ -1,4 +1,4 @@
-import { useFetchRoom, useToggleModal } from "@/hooks";
+import { useClickOutside, useFetchRoom, useToggleModal } from "@/hooks";
 import { roomsState } from "@/store";
 import { FC, useEffect, useState } from "react";
 import { useRecoilValue } from "recoil";
@@ -26,13 +26,17 @@ export const RoomSelector: FC<Props> = ({ setRoomId }) => {
   const [newRoom, setNewRoom] = useState(false);
   const toggleModal = useToggleModal();
   const fetchRoom = useFetchRoom();
-
+  const ref = useClickOutside(() => toggleModal("rooms"));
+  
   useEffect(() => {
     fetchRoom();
     const interval = setInterval(() => {
       fetchRoom();
     }, 5000);
 
+    if(rooms.length === 0) {
+      setNewRoom(true);
+    }
     return () => {
       clearInterval(interval);
     };
@@ -71,7 +75,7 @@ export const RoomSelector: FC<Props> = ({ setRoomId }) => {
 
   return (
     <div className="absolute z-10 bg-black/60 w-full h-full flex items-center justify-center px-4">
-      <div className="bg-zinc-900 p-6 rounded-xl shadow-xl w-full max-w-lg border border-zinc-700">
+      <div ref={ref} className="bg-zinc-900 p-6 rounded-xl shadow-xl w-full max-w-lg border border-zinc-700">
         <IoCloseOutline
           className="absolute top-5 right-5 text-lg cursor-pointer"
           onClick={() => toggleModal("rooms")}

@@ -184,7 +184,7 @@ const VideoReceiver: React.FC<VideoReceiverProps> = ({ roomId, username }) => {
 
   return (
     <div className="relative w-full h-full bg-black overflow-hidden flex flex-col justify-between">
-      <ActionsBar />
+      <ActionsBar roomId={roomId} />
       <video
         ref={cameraVideoRef}
         autoPlay

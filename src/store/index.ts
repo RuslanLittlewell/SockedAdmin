@@ -72,7 +72,7 @@ export const roomsState = atom<RoomInfo[]>({
 export const modalsState = atom<ModalState>({
   key: "modals",
   default: {
-    settings: { visible: false },
+    chatSettings: { visible: false },
     rooms: { visible: false },
   }
 });
