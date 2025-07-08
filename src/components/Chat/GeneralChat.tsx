@@ -1,9 +1,9 @@
 import { FC, useEffect, useRef, useState } from "react";
 import { Socket } from "socket.io-client";
-import clsx from "clsx";
 import { generalChatUserState, Message, MessageType, usersState } from "@/store";
 import { MessageSender } from "./MessageSender";
 import { useRecoilState, useRecoilValue } from "recoil";
+import { MessageBlock } from "./MessageBlock";
 
 interface Props {
   streamId: string;
@@ -61,33 +61,7 @@ export const GeneralChat: FC<Props> = ({
   return (
     <>
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {messages.map((message) => {
-          const findUser = users.find((i) => i.name === message.donater);
-          return (
-            <div key={message.id} className={`flex items-start space-x-2`}>
-              <div className={`max-w-[80%] rounded-lg`}>
-                {message.tokens > 0 ? (
-                  <div className="text-xs mt-1 bg-yellow-500 text-black font-bold px-1">
-                    <span className="text-red-500">{message.donater}</span>{" "}
-                    tipped {message.tokens} token
-                  </div>
-                ) : message.isHost ? (
-                  <div className="text-sm bg-orange-500 rounded px-2">
-                    Streamer: {message.text}
-                  </div>
-                ) : (
-                  <div className="text-sm">
-                    {" "}
-                    <span className={clsx("text-black-500", findUser?.color)}>
-                      {message.donater}
-                    </span>
-                    : {message.text}
-                  </div>
-                )}
-              </div>
-            </div>
-          );
-        })}
+        {messages.map((message) => ( <MessageBlock key={message.id} message={message} />))}
         <div ref={messagesEndRef} />
       </div>
 

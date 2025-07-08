@@ -5,6 +5,10 @@ import { IoCloseOutline } from "react-icons/io5";
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import { toast } from "react-toastify";
+import { useSetRecoilState } from "recoil";
+import { tipMenuState } from "@/store";
+import { useSocket } from "@/Providers/SocketProvider";
+import { useRef } from "react";
 
 interface Props {
   roomId: string;
@@ -16,9 +20,12 @@ interface TipMenuItem {
 }
 
 export const ChatSettings: FC<Props> = ({ roomId }) => {
+  const { socket } = useSocket();
   const toggleModal = useToggleModal();
   const ref = useClickOutside(() => toggleModal("chatSettings"));
   const [loading, setLoading] = useState(true);
+  const setTipMenu = useSetRecoilState(tipMenuState);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   const formik = useFormik({
     initialValues: {
@@ -36,9 +43,13 @@ export const ChatSettings: FC<Props> = ({ roomId }) => {
       ),
     }),
     onSubmit: (values) => {
-      updateTipMenu(roomId, values.tipMenu).then(() => {
+      updateTipMenu(roomId, values.tipMenu).then((res) => {
+        setTipMenu(res.data.tipMenu);
         toast.success("TIP-меню обновлено");
-      })
+        if (socket) {
+          socket?.emit("update-tip-menu", { tipMenu: res.data.tipMenu });
+        }
+      });
     },
     enableReinitialize: true,
   });
@@ -57,6 +68,15 @@ export const ChatSettings: FC<Props> = ({ roomId }) => {
       ...formik.values.tipMenu,
       { id: formik.values.tipMenu.length + 1, value: 0, description: "" },
     ]);
+
+    setTimeout(() => {
+      if (scrollRef.current) {
+        scrollRef.current.scrollTo({
+          top: scrollRef.current.scrollHeight,
+          behavior: "smooth",
+        });
+      }
+    }, 0);
   };
 
   const handleRemoveItem = (index: number) => {
@@ -82,46 +102,52 @@ export const ChatSettings: FC<Props> = ({ roomId }) => {
           Настройки чата
         </h3>
 
-        <form onSubmit={formik.handleSubmit} className="space-y-4">
-          <div className="max-h-[400px] overflow-y-auto">
-          {formik.values.tipMenu.map((item, index) => (
-            <div
-              key={index}
-              className="flex gap-2 items-start bg-zinc-800 p-1 px-2 rounded mb-2"
-            >
+        <form onSubmit={formik.handleSubmit} className="space-y-4 relative">
+          <div ref={scrollRef} className="max-h-[400px] overflow-y-auto">
+            <div className="flex gap-2 items-start pl-2 bg-zinc-900 top-0 sticky">
               <div className="w-20">
                 <label className="block text-sm text-white mb-1">Цена</label>
-                <input
-                  type="number"
-                  name={`tipMenu.${index}.value`}
-                  value={item.value}
-                  onChange={formik.handleChange}
-                  onBlur={formik.handleBlur}
-                  className="w-full px-3 py-2 rounded bg-zinc-900 text-white border border-zinc-600"
-                />
               </div>
               <div className="flex-1">
                 <label className="block text-sm text-white mb-1">
                   Описание
                 </label>
-                <input
-                  name={`tipMenu.${index}.description`}
-                  value={item.description}
-                  onChange={formik.handleChange}
-                  onBlur={formik.handleBlur}
-                  className="w-full px-3 py-2 rounded bg-zinc-900 text-white border border-zinc-600"
-                />
               </div>
-
-              <button
-                type="button"
-                className="text-red-400 mt-7 text-sm hover:underline"
-                onClick={() => handleRemoveItem(index)}
-              >
-                Удалить
-              </button>
             </div>
-          ))}
+            {formik.values.tipMenu.map((item, index) => (
+              <div
+                key={index}
+                className="flex gap-2 items-start bg-zinc-800 p-1 px-2 rounded mb-2"
+              >
+                <div className="w-20">
+                  <input
+                    type="number"
+                    name={`tipMenu.${index}.value`}
+                    value={item.value}
+                    onChange={formik.handleChange}
+                    onBlur={formik.handleBlur}
+                    className="w-full px-3 py-2 rounded bg-zinc-900 text-white border border-zinc-600"
+                  />
+                </div>
+                <div className="flex-1">
+                  <input
+                    name={`tipMenu.${index}.description`}
+                    value={item.description}
+                    onChange={formik.handleChange}
+                    onBlur={formik.handleBlur}
+                    className="w-full px-3 py-2 rounded bg-zinc-900 text-white border border-zinc-600"
+                  />
+                </div>
+
+                <button
+                  type="button"
+                  className="text-red-400 text-sm hover:underline"
+                  onClick={() => handleRemoveItem(index)}
+                >
+                  Удалить
+                </button>
+              </div>
+            ))}
           </div>
           <div className="text-right">
             <button

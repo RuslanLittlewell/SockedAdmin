@@ -13,6 +13,7 @@ export enum MessageType {
   Token    = 'token',
   Announce = 'announce',
   Notify = 'notify',
+  TipMenu = 'tipMenu',
 }
 
 interface RoomInfo {
@@ -39,6 +40,12 @@ export interface Message {
 export interface ModalState {
   [key: string]: { visible: boolean }
 }
+export interface TipMenu {
+  id: number;
+  description: string;
+  value: number;
+}
+
 export const usersState = atom<UserStateProps[]>({
   key: "users",
   default: [],
@@ -76,3 +83,8 @@ export const modalsState = atom<ModalState>({
     rooms: { visible: false },
   }
 });
+
+export const tipMenuState = atom<TipMenu[]>({
+  key: "tipMenu",
+  default: [],
+}); 

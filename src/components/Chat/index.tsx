@@ -1,13 +1,21 @@
 import React, { useEffect, useState } from "react";
 import { io, Socket } from "socket.io-client";
 import { useRecoilState } from "recoil";
-import { toast } from 'react-toastify';
-import { Message, messageState, privateChatUserState, privateMessageState, usersState, UserStateProps } from "@/store";
+import { toast } from "react-toastify";
+import {
+  Message,
+  messageState,
+  privateChatUserState,
+  privateMessageState,
+  usersState,
+  UserStateProps,
+} from "@/store";
 import { GeneralChat } from "./GeneralChat";
 import { PrivateChat } from "./PrivateChat";
 import MessageSounds from "@/assets/sounds/message.mp3";
 
 import clsx from "clsx";
+import { useSocket } from "@/Providers/SocketProvider";
 
 interface ChatProps {
   roomId: string;
@@ -16,11 +24,13 @@ interface ChatProps {
 
 const Chat: React.FC<ChatProps> = ({ roomId, username }) => {
   const [messages, setMessages] = useRecoilState(messageState);
-  const [privateMessages, setPrivateMessages] = useRecoilState(privateMessageState);
+  const [privateMessages, setPrivateMessages] =
+    useRecoilState(privateMessageState);
   const [selectedUser, setSelectedUser] = useRecoilState(privateChatUserState);
   const [users, setUsers] = useRecoilState(usersState);
   const [socket, setSocket] = useState<Socket | null>(null);
   const [isPrivateChat, setPrivateChat] = useState(false);
+  const { setSocketExternally } = useSocket();
 
   const [tab, setTab] = useState(0);
 
@@ -28,7 +38,7 @@ const Chat: React.FC<ChatProps> = ({ roomId, username }) => {
     const apiUrl = import.meta.env.VITE_API_URL;
     const newSocket = io(apiUrl, {
       query: {
-        roomId, 
+        roomId,
         username,
       },
     });
@@ -49,23 +59,26 @@ const Chat: React.FC<ChatProps> = ({ roomId, username }) => {
       setMessages((prev) => [...prev, message]);
     });
 
-
     newSocket.on("private-message", (message: Message) => {
       setPrivateMessages((prev) => [...prev, message]);
-      if(selectedUser !== message.toUser) {
+      if (selectedUser !== message.toUser) {
         new Audio(MessageSounds).play();
-        const findsUser = users.find(i => i.name === message.toUser);
+        const findsUser = users.find((i) => i.name === message.toUser);
 
         const openChat = () => {
           setTab(1);
-          setSelectedUser(message.toUser)
-        }
-        toast(<div className={clsx("flex flex-col")} onClick={openChat}>
-          <div>To: <span className={clsx(findsUser?.color)}>{message.toUser}</span>:</div>
-          <div>{message.text}</div>
-        </div>);
+          setSelectedUser(message.toUser);
+        };
+        toast(
+          <div className={clsx("flex flex-col")} onClick={openChat}>
+            <div>
+              To:{" "}
+              <span className={clsx(findsUser?.color)}>{message.toUser}</span>:
+            </div>
+            <div>{message.text}</div>
+          </div>
+        );
       }
-
     });
 
     newSocket.on("messages-deleted", () => {
@@ -80,12 +93,12 @@ const Chat: React.FC<ChatProps> = ({ roomId, username }) => {
       setPrivateChat(false);
     });
 
-
     newSocket.on("usersData", (users: UserStateProps[]) => {
-        setUsers(users);
-      });
+      setUsers(users);
+    });
 
     setSocket(newSocket);
+    setSocketExternally(newSocket);
 
     return () => {
       newSocket.close();
@@ -93,11 +106,7 @@ const Chat: React.FC<ChatProps> = ({ roomId, username }) => {
   }, [roomId, selectedUser]);
 
   const tabs = [
-    <GeneralChat
-      messages={messages}
-      streamId={roomId}
-      socket={socket}
-    />,
+    <GeneralChat messages={messages} streamId={roomId} socket={socket} />,
     <PrivateChat
       isPrivateChat={isPrivateChat}
       messages={privateMessages}
